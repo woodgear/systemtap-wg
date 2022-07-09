@@ -1721,7 +1721,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   }
   else if (! sysroot.empty())
   {
-      kernel_build_tree = sysroot + "/lib/modules/" + kernel_release  + "/build";
+    // wg:不要更新 build_tree
+    //    kernel_build_tree = sysroot + "/lib/modules/" + kernel_release  + "/build";
   }
 
   return 0;
@@ -2038,7 +2039,7 @@ systemtap_session::parse_kernel_config ()
   int rc = stat(kernel_config_file.c_str(), &st);
   if (rc != 0)
     {
-        clog << _F("Checking \"%s\" failed with error: %s",
+        clog << _F("wg: Checking \"%s\" failed with error: %s",
                    kernel_config_file.c_str(), strerror(errno)) << endl;
 	find_devel_rpms(*this, kernel_build_tree.c_str());
         // Enable warnings, so that the rpm-installation help is sent

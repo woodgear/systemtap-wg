@@ -359,6 +359,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	// target to the task list.
 	if (! found_node) {
 		INIT_LIST_HEAD(&new_tgt->callback_list_head);
+		_stp_warn("add a tgt to  __stp_task_finder_list %s %d",new_tgt->procname,new_tgt->pid);
 		list_add_tail(&new_tgt->list, &__stp_task_finder_list);
 		tgt = new_tgt;
 	}
@@ -707,7 +708,7 @@ __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 				    callback_list);
 		if (cb_tgt == NULL || cb_tgt->mmap_callback == NULL)
 			continue;
-
+        // wg: 这里调用的stapiu_mmap_found 在找到pid和inode的情况下 stapiu_change_plus -> stapiu_register
 		rc = cb_tgt->mmap_callback(cb_tgt, tsk, path, dentry,
 					  addr, length, offset, vm_flags);
 		if (rc != 0) {
@@ -1679,11 +1680,13 @@ stap_stop_task_finder(void);
 static int
 stap_start_task_finder(void)
 {
+
 	int rc = 0;
 	struct task_struct *grp, *tsk;
 	char *mmpath_buf;
 	uid_t tsk_euid;
 
+	_stp_warn("wg: on stap_start_task_finder 2");
 	if (atomic_inc_return(&__stp_task_finder_state) != __STP_TF_STARTING) {
 		atomic_dec(&__stp_task_finder_state);
 		_stp_error("task_finder already started");
@@ -1717,7 +1720,8 @@ stap_start_task_finder(void)
 		/* If in stap -c/-x mode, skip over other processes. */
 		if (_stp_target && tsk->tgid != _stp_target)
 			continue;
-
+        
+	    _stp_warn("wg: on target thread thread %d %d",_stp_target,tsk->tgid );
 		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
 					 __STP_TASK_FINDER_EVENTS,
 					 UTRACE_RESUME);
@@ -1753,6 +1757,7 @@ stap_start_task_finder(void)
 			continue;
 		}
 		mmpath = __stp_get_mm_path(tsk->mm, mmpath_buf, PATH_MAX);
+		_stp_warn("mm path %s",mmpath);
 		task_unlock(tsk);
 		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = PTR_ERR(mmpath);

@@ -1618,6 +1618,7 @@ static struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 static int
 stap_start_task_finder(void)
 {
+	_stp_warn("on stap_start_task_finder");
 	int rc = 0;
 	struct task_struct *grp, *tsk;
 	char *mmpath_buf;

@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "CONFIG_USER_NS",
+                "DEBUG_UPROBES",
+                "HAVE_TASK_FINDER",
+                "CONFIG_UTRACE",
+                "CONFIG_PID_NS",
+            ],
+            "compilerPath": "/usr/local/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}

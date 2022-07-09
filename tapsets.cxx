@@ -10140,6 +10140,7 @@ uprobe_derived_probe_group::emit_module_inode_init (systemtap_session& s)
   s.op->newline() << "/* ---- inode uprobes ---- */";
   // Let stapiu_init() handle reporting errors by setting probe_point
   // to NULL.
+  // wg: 字符串拼出来的？
   s.op->newline() << "probe_point = NULL;";
   s.op->newline() << "rc = stapiu_init ("
                   << "stap_inode_uprobe_consumers, "
