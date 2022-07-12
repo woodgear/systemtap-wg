@@ -813,6 +813,8 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
   struct stapiu_process* p;
   int known_mapping_p;
   unsigned long flags;
+  char proc_path_buff[100];
+  char *proc_path="/proc/";
 
   dbug_uprobes("wg: in mmap_found pid %d inode %ld\n",task->tgid,dentry->d_inode->i_ino);
 
@@ -876,18 +878,33 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
   
   if (! known_mapping_p) {
 
-    dbug_uprobes("wg: not find\n");
+    dbug_uprobes("wg: not find %s %s\n",path,c->solib_pathname);
     /* The file path or build-id must match. The build-id address
      * is calculated using start address of this vma, the file
      * offset of the vma start address and the file offset of
      * the build-id. */
-    if (c->solib_pathname && path && strcmp (path, c->solib_pathname))
-      return 0;
+    if (c->solib_pathname && path) {
+        if (strncmp(proc_path, c->solib_pathname, strlen(proc_path)) == 0) {
+            dbug_uprobes("wg: proc path? %s\n",c->solib_pathname);
+            sprintf(proc_path_buff,"/proc/%d/root%s",task->tgid,path);
+            dbug_uprobes("wg: compare proc path %s %s\n",proc_path_buff,c->solib_pathname);
+            if (strcmp (proc_path_buff, c->solib_pathname)) {
+                return 0;
+            }
+        }else {
+            // not proc path just compare
+            if (strcmp (path, c->solib_pathname)) {
+                return 0;
+            }
+        }
+    }
     if (c->solib_build_id_len > 0 && !__verify_build_id(task,
   						        addr - offset + c->solib_build_id_vaddr,
   						        c->solib_build_id,
-						        c->solib_build_id_len))
+						        c->solib_build_id_len)) {
+
       return 0;
+    }
   }
 
   // If we made it this far, we have an interesting solib.
@@ -923,7 +940,7 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
       spin_lock_irqsave (&c->process_list_lock, flags);
       list_add(&p->process_list, &c->process_list_head);
       spin_unlock_irqrestore (&c->process_list_lock, flags);
-      dbug_uprobes("add p to list %d %ld\n",p->tgid,p->inode->i_ino);
+      dbug_uprobes("wg: add p to list %d %ld\n",p->tgid,p->inode->i_ino);
     } else
       _stp_warn("out of memory tracking solib %s in process %ld\n",
                 path, (long) task->tgid);
