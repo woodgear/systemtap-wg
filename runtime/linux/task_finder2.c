@@ -365,6 +365,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	}
 
 	// Add this target to the callback list for this task.
+	_stp_warn("add a tgt to tgt callbacklist");
 	list_add_tail(&new_tgt->callback_list, &tgt->callback_list_head);
 
 	// If the new target has any m* callbacks, remember this.
@@ -543,7 +544,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 	// around without locking it (and mmput() can sleep).
 	if (! tsk->mm)
 		return EPERM;
-
+    //wg: create 了一个attach, 
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
 		int error = -PTR_ERR(engine);
@@ -582,6 +583,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 			debug_task_finder_attach();
 
 			if (action != UTRACE_RESUME) {
+				dbug_task(2, "wg: call utrace control action %d",action);
 				rc = utrace_control(tsk, engine, action);
 				dbug_task(2, "utrace_control(%d) returned %d", action, rc);
 				/* If utrace_control() returns
@@ -805,9 +807,12 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	// callbacks.
         mmap_read_unlock(mm);
 		
-	if (mmpath)
+	if (mmpath) {
+		_stp_warn("wg: __stp_call_mmap_callbacks_with_addr");
 		__stp_call_mmap_callbacks(tgt, tsk, mmpath, dentry, addr,
 					  length, offset, vm_flags);
+    }
+
 
 	// Cleanup.
 	if (mmpath_buf)
@@ -1317,6 +1322,7 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 					   err, (int)tsk->pid);
 			}
 			else {
+                _stp_warn("wg: __stp_call_mmap_callbacks_for_task  %s",mmpath);
 				__stp_call_mmap_callbacks(tgt, tsk, mmpath,
 							  vma_cache_p->dentry,
 							  vma_cache_p->addr,
@@ -1381,6 +1387,7 @@ __stp_tf_quiesce_worker(struct task_work *work)
 	 * leader, don't bother inform map callback clients about its
 	 * memory map, since they will simply duplicate each other. */
 	if (tgt->mmap_events == 1 && current->tgid == current->pid) {
+        _stp_warn("wg: here __stp_tf_quiesce_worker");
 	    __stp_call_mmap_callbacks_for_task(tgt, current);
 	}
 
@@ -1575,6 +1582,8 @@ __stp_tf_mmap_worker(struct task_work *work)
 		 || entry->syscall_no == MMAP2_SYSCALL_NO(current)) {
 		// Call the callbacks.  Note that arg0 is really the
 		// return value of mmap()/mmap2().
+        // wg: 为什么是这两个syscall
+		_stp_warn("wg: in __stp_tf_mmap_worker call  mmap_callbacks");
 		__stp_call_mmap_callbacks_with_addr(tgt, current, entry->arg0);
 	}
 	else {				// mprotect
@@ -1599,6 +1608,7 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 	struct task_work *work;
 	int rc;
 
+	printk(KERN_ERR "wg: %s:%d on __stp_utrace_task_finder_target_syscall_exit\n",__FUNCTION__, __LINE__);
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
@@ -1652,6 +1662,7 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 		__stp_tf_handler_end();
 		return UTRACE_RESUME;
 	}
+    // wg: 这个__stp_tf_mmap_worker最终调用了uprobe_register
 	__stp_tf_init_task_work(work, &__stp_tf_mmap_worker);
 	rc = __stp_tf_task_work_add(tsk, work);
 	if (rc) {
@@ -1893,7 +1904,9 @@ stap_task_finder_post_init(void)
 						    &tgt->ops, tgt);
 			if (engine != NULL && !IS_ERR(engine)) {
 				/* We found a target task. Stop it. */
-				int rc = utrace_control(tsk, engine,
+                int rc;
+				dbug_task(2, "wg: call utrac_control interrup");
+				rc = utrace_control(tsk, engine,
 							UTRACE_INTERRUPT);
 				/* If utrace_control() returns
 				 * EINPROGRESS when we're

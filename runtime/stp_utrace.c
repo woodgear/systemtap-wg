@@ -712,6 +712,7 @@ static struct utrace *utrace_task_alloc(struct utrace_bucket *bucket,
 	INIT_LIST_HEAD(&utrace->attaching);
 	utrace->resume = UTRACE_RESUME;
 	utrace->task = task;
+    //wg:这个是在 stp_task_notify_resume时被添加到特定的taskwork上的
 	stp_init_task_work(&utrace->resume_work, &utrace_resume);
 	stp_init_task_work(&utrace->report_work, &utrace_report_work);
 	atomic_set(&utrace->resume_work_added, 0);
@@ -1691,6 +1692,7 @@ static int utrace_control(struct task_struct *target,
 		reset = true;
 	}
 
+	printk(KERN_ERR "wg: %s:%d - utrace_control() action %d \n", __FUNCTION__, __LINE__,action);
 	switch (action) {
 	case UTRACE_STOP:
 		mark_engine_wants_stop(utrace, engine);
@@ -2078,6 +2080,7 @@ static const struct utrace_engine_ops *start_callback(
 		       __FUNCTION__, __LINE__, ops,
 		       (ops == NULL ? 0 : ops->report_quiesce));
 #endif
+        // wg: 在这里是直接去调用了 report_quiesce 这个callback
 		if (finish_callback(task, utrace, report, engine,
 				    (*ops->report_quiesce)(report->action,
 							   engine, event)))
@@ -2473,7 +2476,7 @@ put_utrace:
 		INIT_REPORT(report);
 
 #ifdef STP_TF_DEBUG
-		printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%lx\n",
+		printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%x\n",
 		       __FUNCTION__, __LINE__, task, utrace,
 		       utrace->utrace_flags);
 #endif
@@ -2496,7 +2499,7 @@ static void utrace_syscall_exit_work(struct task_work *work)
 	INIT_REPORT(report);
 
 #ifdef STP_TF_DEBUG
-	printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%lx\n",
+	printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%x\n",
 	       __FUNCTION__, __LINE__, task, utrace,
 	       utrace->utrace_flags);
 #endif
@@ -2504,7 +2507,7 @@ static void utrace_syscall_exit_work(struct task_work *work)
 	__stp_utrace_free_task_work(work);
 
 #ifdef STP_TF_DEBUG
-	printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%lx\n",
+	printk(KERN_ERR "%s:%d - task %p, utrace %p, utrace_flags 0x%x\n",
 	       __FUNCTION__, __LINE__, task, utrace,
 	       utrace->utrace_flags);
 #endif
@@ -2782,7 +2785,7 @@ static void utrace_report_death(void *cb_data __attribute__ ((unused)),
 		return;
 
 #ifdef STP_TF_DEBUG
-	printk(KERN_ERR "%s:%d - task %p, utrace %p, flags %lx\n", __FUNCTION__, __LINE__, task, utrace, utrace ? utrace->utrace_flags : 0);
+	printk(KERN_ERR "%s:%d - task %p, utrace %p, flags %x\n", __FUNCTION__, __LINE__, task, utrace, utrace ? utrace->utrace_flags : 0);
 #endif
 	if (!(utrace->utrace_flags & UTRACE_EVENT(DEATH)))
 		goto put_utrace;
