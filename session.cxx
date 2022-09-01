@@ -1525,15 +1525,20 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      return 1;
 	  } else {
 	      char *spath;
+          char const *procfs = "/proc/";
 	      assert(optarg);
-	      spath = canonicalize_file_name (optarg);
-	      if (spath == NULL) {
-		  cerr << _F("ERROR: %s is an invalid directory for --sysroot", optarg) << endl;
-		  return 1;
-	      }
-
-	      sysroot = string(spath);
-	      free (spath);
+          cout<<_F("wg: we get a sysrroot optarg | %s |",optarg) << endl;
+          if (strncmp(optarg,procfs,strlen(procfs)) == 0) {
+	        sysroot = string(optarg);
+          }else {
+	        spath = canonicalize_file_name (optarg);
+	        if (spath == NULL || strlen(spath) == 0) {
+		    cerr << _F("ERROR: %s is an invalid directory for --sysroot", optarg) << endl;
+		    return 1;
+	        }
+	        sysroot = string(spath);
+	        free (spath);
+          }
 
 	      // We do path creation like this:
 	      //   sysroot + "/lib/modules"
@@ -1542,6 +1547,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      if (!sysroot.empty() && *(sysroot.end() - 1) == '/') {
 		  sysroot.erase(sysroot.end() - 1);
 	      }
+          cout<<_F("wg: we get a sysrroot | %s | len %ld",sysroot.c_str(),sysroot.length()) << endl;
 	  }
 	  sysroot_option_seen = true;
 	  break;

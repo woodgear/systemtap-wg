@@ -1408,12 +1408,14 @@ bad:
 
 string path_remove_sysroot(const systemtap_session& sess, const string& path)
 {
+  printf("wg: remove sysroot %s | %s\n",sess.sysroot.c_str(),path.c_str());
   size_t pos;
   string retval = path;
   if (!sess.sysroot.empty() &&
       (pos = retval.find(sess.sysroot)) != string::npos)
     retval.replace(pos, sess.sysroot.length(),
 		   (*(sess.sysroot.end() - 1) == '/' ? "/": ""));
+  printf("wg: remove sysroot end %s\n",retval.c_str());
   return retval;
 }
 

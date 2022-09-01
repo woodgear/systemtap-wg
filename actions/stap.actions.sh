@@ -3,18 +3,20 @@
 function stap-build() (
     cd $STAP_BASE
     local s=$(time_now)
-    # ./configure  --prefix=$PWD/target
+    ./configure  --prefix=$PWD/target
     local ec=$(time_now)
     make all
     local em=$(time_now)
-    sudo make install
+    sudo make install || true # install 到target中
     local ei=$(time_now)
     echo "time: config " $(time_format_time_diff $s $ec)
     echo "time: make all " $(time_format_time_diff $ec $em)
     echo "time: install " $(time_format_time_diff $em $ei)
     echo "time: all " $(time_format_time_diff $s $ei)
     sudo rm /usr/bin/wg-stap || true
+    sudo rm /usr/bin/stap || true
     sudo ln -s $PWD/target/bin/stap /usr/bin/wg-stap
+    sudo ln -s $PWD/target/bin/stap /usr/bin/stap
 )
 
 function find-hostpid(){
