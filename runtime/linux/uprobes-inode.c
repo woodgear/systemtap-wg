@@ -269,10 +269,11 @@ stapiu_register (struct stapiu_instance* inst, struct stapiu_consumer* c)
   int ret = 0;
 
   dbug_uprobes("registering (u%sprobe) at inode-offset "
-	       "%lu:%p pidx %zu target filename:%s buildid:%s\n",
+	       "%lu:%p %lld pidx %zu target filename:%s buildid:%s\n",
 	       c->return_p ? "ret" : "",
 	       (unsigned long) inst->inode->i_ino,
 	       (void*) (uintptr_t) c->offset,
+           c->offset,
 	       c->probe->index,
 	       ((char*)c->finder.procname ?: ((char*)c->solib_pathname ?: "")),
                ((char*)c->finder.build_id ?: ((char*)c->solib_build_id ?: "")));
@@ -928,6 +929,7 @@ stapiu_process_found(struct stap_task_finder_target *tf_target,
         p->inode = inode;
         p->base = 0;
         spin_lock_irqsave (&c->process_list_lock, flags);
+        // wg: 这里在更新process_list
         list_add(&p->process_list, &c->process_list_head);
         spin_unlock_irqrestore (&c->process_list_lock, flags);
       } else {
@@ -1016,6 +1018,7 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
   known_mapping_p = 0;
   spin_lock_irqsave(&c->process_list_lock, flags);
   list_for_each_entry(p, &c->process_list_head, process_list) {
+    dbug_uprobes("[wg]: iter all task %d %d %ld %ld \n",p->tgid,task->tgid,p->inode->i_ino,dentry->d_inode->i_ino);
     if (p->tgid != task->tgid) continue;
     if (p->inode != real_inode) continue;
     known_mapping_p = 1;
@@ -1028,6 +1031,8 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
   // it by buildid or name.
   
   if (! known_mapping_p) {
+
+    dbug_uprobes("[wg]: not find %s %s\n",path,c->solib_pathname);
     /* The file path or build-id must match. The build-id address
      * is calculated using start address of this vma, the file
      * offset of the vma start address and the file offset of
@@ -1075,6 +1080,7 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
       spin_lock_irqsave (&c->process_list_lock, flags);
       list_add(&p->process_list, &c->process_list_head);
       spin_unlock_irqrestore (&c->process_list_lock, flags);
+      dbug_uprobes("[wg]: add p to list %d %ld\n",p->tgid,p->inode->i_ino);
     } else
       _stp_warn("out of memory tracking solib %s in process %ld\n",
                 path, (long) task->tgid);

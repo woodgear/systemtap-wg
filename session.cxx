@@ -1776,7 +1776,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   }
   else if (! sysroot.empty())
   {
-      kernel_build_tree = sysroot + "/lib/modules/" + kernel_release  + "/build";
+    // wg:不要更新 build_tree
+    //    kernel_build_tree = sysroot + "/lib/modules/" + kernel_release  + "/build";
   }
 
   return 0;
