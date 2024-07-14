@@ -10,7 +10,6 @@
 #include <cinttypes>
 #include <cassert>
 #include <cstdlib>
-
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 #include <elfutils/version.h>
@@ -18,6 +17,7 @@
 #include "loc2stap.h"
 #include "dwflpp.h"
 #include "tapsets.h"
+#include <execinfo.h>
 
 #if ! _ELFUTILS_PREREQ(0, 153)
 #define DW_OP_GNU_entry_value 0xf3
@@ -67,9 +67,51 @@ location_context::location_context(target_symbol *ee, expression *pp)
       }
 }
 
+void print_trace (void)
+{
+  void *array[10];
+  char **symb;
+  int size;
+
+  size = backtrace (array, 10);
+  symb = backtrace_symbols (array, size);
+  if (symb == NULL) {
+    return;
+  }
+  char exe_name[512] = {};
+  readlink("/proc/self/exe", exe_name, sizeof(exe_name));
+  while (size > 0) {
+    char *symbol = symb[size - 1];
+    char foo[1024];
+    printf("%d: [%s]\n", size, symbol);
+    if (strstr(symbol, "[0x")) {
+      char *p = strstr(symbol, "[0x") + 1;
+      char *pp = strchr(p, ']');
+
+      snprintf(foo, sizeof(foo), "addr2line -p -i -f -e %s %.*s",
+          exe_name,
+          (unsigned)(pp-p),
+          p);
+      if (system(foo) == -1)
+        printf("(addr2line missing)\n");
+    }
+    size --;
+  }
+
+//   std::clog << "Obtained " << size << " stack frames."<<std::endl;
+//   for (i = 0; i < size; i++) {
+//       std::clog << strings[i] << std::endl;
+//   }
+  free (symb);
+}
+
+
+
 expression *
 location_context::translate_address(Dwarf_Addr addr)
 {
+  std::clog << "[wg]  "<< __FUNCTION__ << " " << __LINE__ << " "<< "addr " <<  lex_cast_hex (addr) << std::endl;
+  print_trace();
   if (dw == NULL)
     return new literal_number(addr);
 

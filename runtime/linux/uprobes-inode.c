@@ -1037,8 +1037,10 @@ stapiu_mmap_found(struct stap_task_finder_target *tf_target,
      * is calculated using start address of this vma, the file
      * offset of the vma start address and the file offset of
      * the build-id. */
-    if (c->solib_pathname && path && strcmp (path, c->solib_pathname))
+    if (c->solib_pathname && path && strcmp (path, c->solib_pathname)) {
+        dbug_uprobes("[wg]: find %s %s\n",path,c->solib_pathname);
       return 0;
+    }
     if (c->solib_build_id_len > 0 && !__verify_build_id(task,
   						        addr - offset + c->solib_build_id_vaddr,
   						        c->solib_build_id,

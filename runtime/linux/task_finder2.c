@@ -682,6 +682,7 @@ __stp_call_callbacks(struct stap_task_finder_target *tgt,
 		if (cb_tgt == NULL || cb_tgt->callback == NULL)
 			continue;
 
+		dbug_task(1, "[wg] %s cb_tgt->callback %pF",cb_tgt->callback);
 		rc = cb_tgt->callback(cb_tgt, tsk, register_p, process_p);
 
 		dbug_task(1, "tgt %s callback returned %d (proc=%s pid=%d, "

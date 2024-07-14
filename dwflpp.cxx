@@ -4194,6 +4194,8 @@ dwflpp::literal_stmt_for_local (location_context &ctx,
                                 bool lvalue,
                                 Dwarf_Die *die_mem)
 {
+  // [wg]
+  sess.verbose =3;
   Dwarf_Die vardie, funcdie;
   Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
 

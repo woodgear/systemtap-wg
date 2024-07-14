@@ -98,6 +98,7 @@ common_probe_entryfn_prologue (systemtap_session& s,
 			       void (*pre_context_callback)(systemtap_session& s, void *data),
 			       void *callback_data)
 {
+    clog<< "[wg] here" << endl;
   if (s.runtime_usermode_p())
     {
       // If session_state() is NULL, then we haven't even initialized shm yet,
@@ -1375,6 +1376,8 @@ dwarf_query::parse_function_spec(const string & spec)
   if (function.empty() ||
       (spec_type != function_alone && file.empty()))
     goto bad;
+    
+  clog << _F("[wg] parse '%s'", spec.c_str());
 
   if (sess.verbose > 2)
     {
@@ -3461,6 +3464,7 @@ void
 dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
                              print_format* pf, bool top)
 {
+    clog<<"[wg] dwarf " << e->name <<endl;
   // deal with initial void* pointers
   if (!deref_p && null_die(start_type))
     {
@@ -3908,6 +3912,7 @@ synthetic_embedded_deref_call(dwflpp& dw, location_context &ctx,
 			      bool userspace_p, bool lvalue_p,
                               expression *pointer = NULL)
 {
+  clog << "[wg] synthetic_embedded_deref_call " << ctx.e->name << endl;
   target_symbol *e = ctx.e;
   const target_symbol *e_orig = ctx.e_orig;
   const token *tok = e->tok;
@@ -4539,6 +4544,7 @@ dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
+  clog << "[wg] dwarf_var_expanding_visitor::visit_target_symbol_context " << e->name << endl;
   if (pending_interrupts) {
     provide(e);
     return;
@@ -4692,6 +4698,7 @@ dwarf_var_expanding_visitor::visit_atvar_op (atvar_op *e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
+  clog << "[wg] dwarf_var_expanding_visitor::visit_target_symbol " << e->name << endl;
   assert(e->name.size() > 0 && (e->name[0] == '$' || e->name == "@var"));
   visited = true;
   bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
@@ -5302,6 +5309,7 @@ struct dwarf_atvar_query: public base_query
 int
 dwarf_atvar_query::atvar_query_cu (Dwarf_Die * cudie, dwarf_atvar_query *q)
 {
+    clog << "[wg] dwarf_atvar_query::atvar_query_cu " << q->e.name << " | " << q->e.cu_name << endl;
   if (! q->e.cu_name.empty())
     {
       const char *die_name = dwarf_diename(cudie) ?: "";
@@ -5324,6 +5332,7 @@ dwarf_atvar_query::atvar_query_cu (Dwarf_Die * cudie, dwarf_atvar_query *q)
           dwarf_pretty_print dpp (q->dw, scopes, 0, q->e.sym_name(),
                                   q->userspace_p, q->e, q->lvalue);
           q->result = dpp.expand();
+          clog << "[wg] dwarf_atvar_query::atvar_query_cu abort" << endl;
           return DWARF_CB_ABORT;
         }
 
@@ -5331,25 +5340,34 @@ dwarf_atvar_query::atvar_query_cu (Dwarf_Die * cudie, dwarf_atvar_query *q)
       ctx.userspace_p = q->userspace_p;
       Dwarf_Die endtype;
 
+      clog << "[wg] " << __FUNCTION__ << " " << __LINE__ << " literal_stmt_for_local  " << q->e.sym_name() << endl;
       bool ok = q->dw.literal_stmt_for_local (ctx, scopes, q->e.sym_name(),
 					      ctx.e, q->lvalue, &endtype);
 
-      if (!ok)
+      if (!ok) {
+        clog << "[wg] dwarf_atvar_query::atvar_query_cu cbok" << endl;
         return DWARF_CB_OK;
+      }
 
       string fname = (string(q->lvalue ? "_dwarf_tvar_set"
                                        : "_dwarf_tvar_get")
                       + "_" + q->e.sym_name()
                       + "_" + lex_cast(q->tick++));
 
+      clog << "[wg] " << __FUNCTION__ << " " << __LINE__ << " " << fname << endl;
       q->result = synthetic_embedded_deref_call (q->dw, ctx, fname, &endtype,
                                                  q->userspace_p, q->lvalue);
+
+      clog << "[wg]  "<< __FUNCTION__ << " " << __LINE__ << " "<< "deref_cell ok " << fname << endl;
     }
   catch (const semantic_error& er)
     {
-      if (q->sess.verbose > 3)
+      clog << "[wg] " << __FUNCTION__ << " " << __LINE__ << " err " << endl;
+    //   if (q->sess.verbose > 3) {
+      if (true) {
         clog << "chaining to " << q->e.tok << endl
              << q->sess.build_error_msg(er) << endl;
+      }
       q->e.chain (er);
       return DWARF_CB_OK;
     }
@@ -5373,6 +5391,7 @@ dwarf_atvar_query::handle_query_module ()
 void
 dwarf_atvar_expanding_visitor::visit_atvar_op (atvar_op* e)
 {
+  clog << "[wg] dwarf_atvar_expanding_visitor::visit_atvar_op " << e->name << endl;
   const bool lvalue = is_active_lvalue(e);
   if (lvalue && !sess.guru_mode)
     throw SEMANTIC_ERROR(_("write to @var variable not permitted; "
@@ -7660,6 +7679,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 void
 sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
+  clog << "[wg] visit "<< e->name << endl;
   try
     {
       assert(e->name.size() > 0
