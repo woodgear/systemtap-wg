@@ -3252,8 +3252,10 @@ dwflpp::translate_location(location_context *ctx,
      (struct member fields), or full blown location expressions.  */
 
   /* There is no location expression, but a constant value instead.  */
-  if (dwarf_whatattr (attr) == DW_AT_const_value)
+  if (dwarf_whatattr (attr) == DW_AT_const_value) {
+    clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
     return ctx->translate_constant (attr);
+  }
 
   Dwarf_Op *expr;
   size_t len;
@@ -3487,6 +3489,8 @@ dwflpp::find_struct_member(const target_symbol::component& c,
             }
           else if (name == c.member)
             {
+              clog << "[wg] "<<__FUNCTION__ << " find member die "<<__LINE__ <<" "<< c.member.c_str() << endl;
+              clog << "[wg] "<<__FUNCTION__ <<" "<<__LINE__ <<" "<< die.addr << endl;
               *memberdie = die;
               goto success;
             }
@@ -3503,6 +3507,7 @@ success:
    * members. */
   if (dwarf_attr_integrate (&die, DW_AT_data_member_location, &attr))
     {
+      clog << "[wg] "<<__FUNCTION__ << __LINE__ <<" member location "<<*attr.valp << endl;
       dies.insert(dies.begin(), die);
       locs.insert(locs.begin(), attr);
     }
@@ -3542,11 +3547,14 @@ dwflpp::translate_components(location_context *ctx,
 			     bool lvalue,
                              unsigned first)
 {
+
+  clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
+  clog << "translate_components: " << dwarf_type_name(typedie) << " "<< e->components.size() << endl;
   unsigned i = first;
   while (i < e->components.size())
     {
       const target_symbol::component& c = e->components[i];
-
+      clog << "translate_components: mem " << " tag "<< dwarf_tag (typedie) << " " << c.member.c_str() << endl;
       switch (dwarf_tag (typedie))
         {
         case DW_TAG_typedef:
@@ -3611,6 +3619,8 @@ dwflpp::translate_components(location_context *ctx,
 
           if (dwarf_hasattr(typedie, DW_AT_declaration))
             {
+              clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
+              clog<< "declaration_resolve" <<endl;
               Dwarf_Die *tmpdie = declaration_resolve(typedie);
               if (tmpdie == NULL)
                 throw SEMANTIC_ERROR (_F("unresolved %s", dwarf_type_name(typedie).c_str()), c.tok);
@@ -3622,6 +3632,7 @@ dwflpp::translate_components(location_context *ctx,
               vector<Dwarf_Attribute> locs;
               if (!find_struct_member(c, typedie, vardie, dies, locs))
                 {
+                  clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
                   /* Add a file:line hint for anonymous types */
                   string source;
                   if (!dwarf_hasattr_integrate(typedie, DW_AT_name))
@@ -3645,6 +3656,7 @@ dwflpp::translate_components(location_context *ctx,
 
               if (dwarf_tag (vardie) == DW_TAG_enumerator)
                 {
+                  clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
                   location *n = ctx->locations.back();
                   /* Fold all locations except this enum constant */
                   ctx->locations.erase(ctx->locations.begin(), ctx->locations.end()-1);
@@ -3655,14 +3667,18 @@ dwflpp::translate_components(location_context *ctx,
                 }
 	      if (!ctx->locations.empty())
 		{
+          clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
 		  location *n = ctx->locations.back();
-	          for (unsigned j = 0; j < locs.size(); ++j)
-		    n = translate_location (ctx, &locs[j], &dies[j],
-					    pc, NULL, e, n);
+	      for (unsigned j = 0; j < locs.size(); ++j) {
+		    n = translate_location (ctx, &locs[j], &dies[j], pc, NULL, e, n);
+            clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ <<" bs "<<  n->byte_size << " offset "<< n->offset << endl;
+          }
+
 		  ctx->locations.push_back(n);
 		}
             }
 
+          clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << endl;
           dwarf_die_type (vardie, typedie, c.tok);
           ++i;
           break;

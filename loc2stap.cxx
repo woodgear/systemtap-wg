@@ -1360,6 +1360,8 @@ location *
 location_context::translate_location (const Dwarf_Op *expr, size_t len,
 				      location *input)
 {
+
+    std::clog << "[wg] "<<__FUNCTION__ << " "<<__LINE__ << std::endl;
   switch (input ? input->type : loc_address)
     {
     case loc_address:
